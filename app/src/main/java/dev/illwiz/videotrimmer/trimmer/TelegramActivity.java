@@ -1,7 +1,9 @@
 package dev.illwiz.videotrimmer.trimmer;
 
+import android.app.ProgressDialog;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -11,10 +13,13 @@ import android.widget.VideoView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import org.telegram.messenger.CustomVideoTimelinePlayView;
 import org.telegram.messenger.VideoTimelinePlayView;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 
 import butterknife.BindView;
@@ -22,7 +27,12 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import dev.illwiz.videotrimmer.R;
 import dev.illwiz.videotrimmer.utils.Prop;
+import dev.illwiz.videotrimmer.utils.TrimUtils;
 import dev.illwiz.videotrimmer.utils.Utils;
+import io.reactivex.Completable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class TelegramActivity extends AppCompatActivity {
@@ -38,12 +48,16 @@ public class TelegramActivity extends AppCompatActivity {
     TextView trimDurRangeTxt;
     @BindView(R.id.timelineView)
     CustomVideoTimelinePlayView timelineView;
+    @BindView(R.id.trimBtn)
+    TextView trimBtn;
 
     private Uri videoUri;
     private File videoFile;
     private float videoDuration;
     private long estimatedDuration,trimStartTime,trimEndTime;
     private long originalSize,estimatedSize;
+    private Disposable trimTask;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -51,6 +65,46 @@ public class TelegramActivity extends AppCompatActivity {
         setContentView(R.layout.activity_trimmer_telegram);
         ButterKnife.bind(this);
         initialize();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(trimTask!=null) {
+            trimTask.dispose();
+        }
+        super.onDestroy();
+    }
+
+    @OnClick(R.id.trimBtn)
+    public void trimBtn() {
+        //long now = System.currentTimeMillis();
+        File outDir = videoFile.getParentFile();
+        /*File outDir = new File(videoFile.getParent(),"trim-"+now+".mp4");
+        try {
+            boolean createFileSuccess = outDir.createNewFile();
+            Timber.d("Create file success: "+createFileSuccess+" - "+outDir.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            showMessage(e.getMessage());
+            return;
+        }*/
+        Completable trimCompletable = Completable.fromAction(()->{
+            TrimUtils.trim(videoFile,outDir,trimStartTime,trimEndTime);
+        });
+        trimTask = trimCompletable
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(disposable -> {
+                    showLoading(true);
+                })
+                .subscribe(()->{
+                   showLoading(false);
+                   showMessage("Trim success");
+                },throwable -> {
+                    throwable.printStackTrace();
+                    showLoading(false);
+                    showMessage(throwable.getMessage());
+                });
     }
 
     @OnClick(R.id.videoViewWrapper)
@@ -136,5 +190,17 @@ public class TelegramActivity extends AppCompatActivity {
         trimDurAndSizeTxt.setText(videoTimeSize);
         String trimRangeDurStr = Utils.getMinuteSeconds(trimStartTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
         trimDurRangeTxt.setText(trimRangeDurStr);
+    }
+
+    private void showMessage(String message) {
+        Snackbar.make(findViewById(android.R.id.content),message,Snackbar.LENGTH_LONG).show();
+    }
+
+    private void showLoading(boolean show) {
+        if(show) {
+            progressDialog = ProgressDialog.show(this,"Loading","In progress, please wait...",true,false);
+        } else if(progressDialog!=null&&progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
     }
 }

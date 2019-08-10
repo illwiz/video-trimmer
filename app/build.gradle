@@ -54,6 +54,9 @@ dependencies {
     // Image
     implementation "com.facebook.fresco:fresco:$rootProject.fresco"
 
+    // Video
+    implementation "com.googlecode.mp4parser:isoparser:$rootProject.mp4Parser"
+
     // Google
     implementation "com.google.code.gson:gson:$rootProject.gson"
 

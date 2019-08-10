@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK) {
             if (requestCode == REQ_SELECT_VIDEO) {
                 videoFile = data.getData();
-                selectVideoBtn.setText(videoFile.toString());
+                //selectVideoBtn.setText(videoFile.toString());
                 showSelectTrimmerDialog(true);
             } else if(requestCode == REQ_TRIM_VIDEO) {
                 showMessage("Trim video success");

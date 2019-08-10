@@ -4,7 +4,7 @@ buildscript {
     repositories {
         google()
         jcenter()
-        
+
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.2'
@@ -18,7 +18,7 @@ allprojects {
     repositories {
         google()
         jcenter()
-        
+
     }
 }
 
@@ -54,6 +54,9 @@ ext {
 
     // Image
     fresco = "1.13.0"
+
+    // Video
+    mp4Parser = "1.1.22"
 
     // Google
     gson = "2.8.5"
@@ -99,6 +102,9 @@ def dependenciesFullName = [
 
     // Image
     fresco : "com.facebook.fresco:fresco:$rootProject.fresco",
+
+    // Video
+    mp4Parser : "com.googlecode.mp4parser:isoparser:$rootProject.mp4Parser",
 
     // Google
     gson : "com.google.code.gson:gson:$rootProject.gson",
