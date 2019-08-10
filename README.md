@@ -1,2 +1,2 @@
 #### Video Trimmer  
-Try making video trimmer screen like on WhatsApp
+Try making video trimmer like on WhatsApp
