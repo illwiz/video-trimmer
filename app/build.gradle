@@ -1,0 +1,77 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion rootProject.compileSdkVersion
+    defaultConfig {
+        applicationId rootProject.appId
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        versionCode rootProject.versionCode
+        versionName rootProject.versionName
+        vectorDrawables.useSupportLibrary = true
+        testInstrumentationRunner rootProject.testInstrumentationRunner
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            debuggable true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            debuggable false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(":trimmer-telegram")
+
+    implementation "androidx.constraintlayout:constraintlayout:$rootProject.androidConstraintLayout"
+    implementation "androidx.legacy:legacy-support-v4:$rootProject.androidSupportV4"
+    implementation "androidx.appcompat:appcompat:$rootProject.androidAppCompat"
+    implementation "com.google.android.material:material:$rootProject.androidDesign"
+    implementation "androidx.recyclerview:recyclerview:$rootProject.androidRecyclerView"
+    implementation "androidx.cardview:cardview:$rootProject.androidCardView"
+
+    // Android Architecture
+    implementation "androidx.lifecycle:lifecycle-extensions:$rootProject.archLifecycleExtensions"
+    implementation "androidx.lifecycle:lifecycle-runtime:$rootProject.archLifecycleRuntime"
+    annotationProcessor "androidx.lifecycle:lifecycle-compiler:$rootProject.archLifecycleCompiler"
+
+    // Reactive
+    implementation "io.reactivex.rxjava2:rxjava:$rootProject.rxjava"
+    implementation "io.reactivex.rxjava2:rxandroid:$rootProject.rxandroid"
+
+    // Image
+    implementation "com.facebook.fresco:fresco:$rootProject.fresco"
+
+    // Google
+    implementation "com.google.code.gson:gson:$rootProject.gson"
+
+    // View Binding
+    implementation "com.jakewharton:butterknife:$rootProject.butterKnife"
+    annotationProcessor "com.jakewharton:butterknife-compiler:$rootProject.butterKnifeCompiler"
+
+    // Dependency Injection
+    implementation "com.google.dagger:dagger:$rootProject.dagger"
+    annotationProcessor "com.google.dagger:dagger-compiler:$rootProject.daggerCompiler"
+    implementation "com.google.dagger:dagger-android:$rootProject.daggerAndroid"
+    annotationProcessor "com.google.dagger:dagger-android-processor:$rootProject.daggerAndroidCompiler"
+    implementation "com.google.dagger:dagger-android-support:$rootProject.daggerAndroidSupport"
+
+    // Timber
+    implementation "com.jakewharton.timber:timber:$rootProject.timber"
+
+    testImplementation "junit:junit:$rootProject.junit"
+    androidTestImplementation "androidx.test:runner:$rootProject.androidTestRunner"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.androidTestEspressoCore"
+}

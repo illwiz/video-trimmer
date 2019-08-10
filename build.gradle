@@ -1,0 +1,124 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+        
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.4.2'
+        
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+ext {
+    appId = "dev.illwiz.videotrimmer"
+    versionCode = 1
+    versionName = "1.0.1"
+    minSdkVersion = 16
+    targetSdkVersion = 29
+    compileSdkVersion = 29
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    androidConstraintLayout = "1.1.3"
+    androidSupportV4 = "1.0.0"
+    androidAppCompat = "1.0.2"
+    androidDesign = "1.0.0"
+    androidRecyclerView = "1.0.0"
+    androidCardView = "1.0.0"
+    androidPalette = "1.0.0"
+
+    // Android Architecture
+    archLifecycleExtensions = "2.0.0" // LiveData and ViewModel
+    archLifecycleRuntime = "2.0.0" // Support library depends on this lightweight import
+    archLifecycleCompiler = "2.0.0"
+
+    // Reactive
+    rxjava = "2.1.12"
+    rxandroid = "2.1.1"
+
+    // Image
+    fresco = "1.13.0"
+
+    // Google
+    gson = "2.8.5"
+
+    // View Binding
+    butterKnife = "10.1.0"
+    butterKnifeCompiler = "10.1.0"
+
+    // Dependency Injection
+    dagger = "2.13"
+    daggerCompiler = "2.13"
+    daggerAndroid = "2.22"
+    daggerAndroidCompiler = "2.12"
+    daggerAndroidSupport = "2.22"
+
+    // Logging
+    timber = "4.7.1"
+
+    // Testing
+    junit = "4.12"
+    androidTestRunner = "1.1.0"
+    androidTestEspressoCore = "3.1.0"
+}
+
+def dependenciesFullName = [
+
+    androidConstraintLayout : "androidx.constraintlayout:constraintlayout:$rootProject.androidConstraintLayout",
+    androidSupportV4 : "androidx.legacy:legacy-support-v4:$rootProject.androidSupportV4",
+    androidAppCompat : "androidx.appcompat:appcompat:$rootProject.androidAppCompat",
+    androidDesign : "com.google.android.material:material:$rootProject.androidDesign",
+    androidRecyclerView : "androidx.recyclerview:recyclerview:$rootProject.androidRecyclerView",
+    androidCardView : "androidx.cardview:cardview:$rootProject.androidCardView",
+    androidPalette : "androidx.palette:palette:$rootProject.androidPalette", // for library-drag-dismiss-layout ViewUtils
+
+    // Android Architecture
+    archLifecycleExtensions : "androidx.lifecycle:lifecycle-extensions:$rootProject.archLifecycleExtensions",
+    archLifecycleRuntime : "androidx.lifecycle:lifecycle-runtime:$rootProject.archLifecycleRuntime",
+    archLifecycleCompiler : "androidx.lifecycle:lifecycle-compiler:$rootProject.archLifecycleCompiler",
+
+    // Reactive
+    rxjava : "io.reactivex.rxjava2:rxjava:$rootProject.rxjava",
+    rxandroid : "io.reactivex.rxjava2:rxandroid:$rootProject.rxandroid",
+
+    // Image
+    fresco : "com.facebook.fresco:fresco:$rootProject.fresco",
+
+    // Google
+    gson : "com.google.code.gson:gson:$rootProject.gson",
+
+    // View Binding
+    butterKnife : "com.jakewharton:butterknife:$rootProject.butterKnife",
+    butterKnifeCompiler : "com.jakewharton:butterknife-compiler:$rootProject.butterKnifeCompiler",
+
+    // Dependency Injection
+    dagger : "com.google.dagger:dagger:$rootProject.dagger",
+    daggerCompiler : "com.google.dagger:dagger-compiler:$rootProject.daggerCompiler",
+    daggerAndroid : "com.google.dagger:dagger-android:$rootProject.daggerAndroid",
+    daggerAndroidCompiler : "com.google.dagger:dagger-android-processor:$rootProject.daggerAndroidCompiler",
+    daggerAndroidSupport : "com.google.dagger:dagger-android-support:$rootProject.daggerAndroidSupport",
+
+    // Timber
+    timber : "com.jakewharton.timber:timber:$rootProject.timber",
+
+    // Testing
+    junit : "junit:junit:$rootProject.junit",
+    androidTestRunner : "androidx.test:runner:$rootProject.androidTestRunner",
+    androidTestEspressoCore : "androidx.test.espresso:espresso-core:$rootProject.androidTestEspressoCore",
+]
