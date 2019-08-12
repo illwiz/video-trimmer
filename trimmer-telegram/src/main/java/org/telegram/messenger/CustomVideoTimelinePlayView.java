@@ -60,6 +60,8 @@ public class CustomVideoTimelinePlayView extends View {
     private Drawable drawableRight;
     private int lastWidth;
 
+    private float maxVideoSizeProgressDiff = -1;
+
     public interface VideoTimelineViewDelegate {
         void onLeftProgressChanged(float progress);
         void onRightProgressChanged(float progress);
@@ -115,6 +117,15 @@ public class CustomVideoTimelinePlayView extends View {
         if (progressRight - progressLeft > maxProgressDiff) {
             progressRight = progressLeft + maxProgressDiff;
             invalidate();
+        }
+    }
+
+    /**
+     * Pass 0 or below to disable max video size
+     */
+    public void setMaxVideoSize(long maxVideoSize, long videoOriginalSize) {
+        if(maxVideoSize>0) {
+            maxVideoSizeProgressDiff = ((float)maxVideoSize / videoOriginalSize);
         }
     }
 
@@ -214,7 +225,9 @@ public class CustomVideoTimelinePlayView extends View {
                     startX = endX;
                 }
                 progressLeft = (float) (startX - Utils.dp(getContext(),16)) / (float) width;
-                if (progressRight - progressLeft > maxProgressDiff) {
+                if(maxVideoSizeProgressDiff!=-1 && progressRight - progressLeft > maxVideoSizeProgressDiff) { // Higher than max video size limit
+                    progressRight = progressLeft + maxVideoSizeProgressDiff;
+                } else if (progressRight - progressLeft > maxProgressDiff) {
                     progressRight = progressLeft + maxProgressDiff;
                 } else if (minProgressDiff != 0 && progressRight - progressLeft < minProgressDiff) {
                     progressLeft = progressRight - minProgressDiff;
@@ -235,7 +248,9 @@ public class CustomVideoTimelinePlayView extends View {
                     endX = width + Utils.dp(getContext(),16);
                 }
                 progressRight = (float) (endX - Utils.dp(getContext(),16)) / (float) width;
-                if (progressRight - progressLeft > maxProgressDiff) {
+                if(maxVideoSizeProgressDiff!=-1 && progressRight - progressLeft > maxVideoSizeProgressDiff) { // Higher than max video size limit
+                    progressLeft = progressRight - maxVideoSizeProgressDiff;
+                } else if (progressRight - progressLeft > maxProgressDiff) {
                     progressLeft = progressRight - maxProgressDiff;
                 } else if (minProgressDiff != 0 && progressRight - progressLeft < minProgressDiff) {
                     progressRight = progressLeft + minProgressDiff;
@@ -257,27 +272,11 @@ public class CustomVideoTimelinePlayView extends View {
         paint.setColor(color);
     }
 
-    public void setVideoPath(String path) {
-        destroy();
-        mediaMetadataRetriever = new MediaMetadataRetriever();
-        progressLeft = 0.0f;
-        progressRight = 1.0f;
-        try {
-            mediaMetadataRetriever.setDataSource(path);
-            String duration = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-            videoLength = Long.parseLong(duration);
-        } catch (Exception e) {
-            //FileLog.e(e);
-            e.printStackTrace();
-        }
-        invalidate();
-    }
-
     public void setVideoPath(Uri path) {
         destroy();
         mediaMetadataRetriever = new MediaMetadataRetriever();
         progressLeft = 0.0f;
-        progressRight = 1.0f;
+        progressRight = minProgressDiff;
         try {
             mediaMetadataRetriever.setDataSource(getContext(),path);
             String duration = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);

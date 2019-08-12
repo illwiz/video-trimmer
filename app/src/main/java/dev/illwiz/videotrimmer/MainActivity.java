@@ -66,7 +66,10 @@ public class MainActivity extends AppCompatActivity {
             if (requestCode == REQ_SELECT_VIDEO) {
                 videoFile = data.getData();
                 //selectVideoBtn.setText(videoFile.toString());
-                showSelectTrimmerDialog(true);
+                //showSelectTrimmerDialog(true);
+                Intent intent = new Intent(this,TelegramActivity.class);
+                intent.putExtra(Prop.MAIN_OBJ,videoFile);
+                startActivityForResult(intent,REQ_TRIM_VIDEO);
             } else if(requestCode == REQ_TRIM_VIDEO) {
                 showMessage("Trim video success");
             }

@@ -3,7 +3,6 @@ package dev.illwiz.videotrimmer.trimmer;
 import android.app.ProgressDialog;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -16,10 +15,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.telegram.messenger.CustomVideoTimelinePlayView;
-import org.telegram.messenger.VideoTimelinePlayView;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Locale;
 
 import butterknife.BindView;
@@ -36,6 +33,9 @@ import io.reactivex.schedulers.Schedulers;
 import timber.log.Timber;
 
 public class TelegramActivity extends AppCompatActivity {
+    private static final int VIDEO_MIN_DURATION_MS = 3000;
+    private static final int VIDEO_MAX_DURATION_MS = 60000;
+    private static final long VIDEO_MAX_SIZE = 10 * 1024 * 1024;
     @BindView(R.id.videoViewWrapper)
     FrameLayout videoViewWrapper;
     @BindView(R.id.videoView)
@@ -121,17 +121,44 @@ public class TelegramActivity extends AppCompatActivity {
     private void initialize() {
         videoUri = getIntent().getParcelableExtra(Prop.MAIN_OBJ);
         String path = Utils.getPath(this,videoUri);
-        if(path==null) {
-            return;
-        }
         videoFile = new File(path);
         if(videoFile.exists()) {
             originalSize = videoFile.length();
         }
 
-        timelineView.setMinProgressDiff(0.3f);
-        timelineView.setMaxProgressDiff(0.8f);
+        videoView.setOnPreparedListener(mediaPlayer -> {
+            videoDuration = mediaPlayer.getDuration();
+            initVideoTimelineView();
+            playBtn.setVisibility(View.VISIBLE);
+            updateVideoInfo();
+        });
+        //videoView.setMediaController(new MediaController(this));
+        videoView.setVideoURI(videoUri);
+    }
+
+    private void updateVideoInfo() {
+        trimStartTime = (long) Math.ceil(timelineView.getLeftProgress()*videoDuration);
+        trimEndTime = (long) Math.ceil(timelineView.getRightProgress()*videoDuration);
+        estimatedDuration = trimEndTime - trimStartTime;
+        estimatedSize = (int) (originalSize * ((float) estimatedDuration / videoDuration));
+        String videoTimeSize = String.format(Locale.US,"%s, ~%s", Utils.getMinuteSeconds(estimatedDuration), Utils.formatFileSize(estimatedSize));
+        trimDurAndSizeTxt.setText(videoTimeSize);
+        String trimRangeDurStr = Utils.getMinuteSeconds(trimStartTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
+        trimDurRangeTxt.setText(trimRangeDurStr);
+    }
+
+    private void initVideoTimelineView() {
+        if(videoDuration>=(VIDEO_MIN_DURATION_MS+1000)) {
+            float minProgressDiff = VIDEO_MIN_DURATION_MS/videoDuration;
+            timelineView.setMinProgressDiff(minProgressDiff);
+        }
+        if(videoDuration>=(VIDEO_MAX_DURATION_MS+1000)) {
+            float maxProgressDiff = VIDEO_MAX_DURATION_MS/videoDuration;
+            timelineView.setMaxProgressDiff(maxProgressDiff);
+        }
+        timelineView.setMaxVideoSize(VIDEO_MAX_SIZE,originalSize);
         timelineView.setDelegate(new CustomVideoTimelinePlayView.VideoTimelineViewDelegate() {
+
             @Override
             public void onLeftProgressChanged(float progress) {
                 Timber.d("onLeftProgressChanged "+progress);
@@ -171,25 +198,6 @@ public class TelegramActivity extends AppCompatActivity {
             }
         });
         timelineView.setVideoPath(videoUri);
-
-        videoView.setOnPreparedListener(mediaPlayer -> {
-            videoDuration = mediaPlayer.getDuration();
-            playBtn.setVisibility(View.VISIBLE);
-            updateVideoInfo();
-        });
-        //videoView.setMediaController(new MediaController(this));
-        videoView.setVideoURI(videoUri);
-    }
-
-    private void updateVideoInfo() {
-        trimStartTime = (long) Math.ceil(timelineView.getLeftProgress()*videoDuration);
-        trimEndTime = (long) Math.ceil(timelineView.getRightProgress()*videoDuration);
-        estimatedDuration = trimEndTime - trimStartTime;
-        estimatedSize = (int) (originalSize * ((float) estimatedDuration / videoDuration));
-        String videoTimeSize = String.format(Locale.US,"%s, ~%s", Utils.getMinuteSeconds(estimatedDuration), Utils.formatFileSize(estimatedSize));
-        trimDurAndSizeTxt.setText(videoTimeSize);
-        String trimRangeDurStr = Utils.getMinuteSeconds(trimStartTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
-        trimDurRangeTxt.setText(trimRangeDurStr);
     }
 
     private void showMessage(String message) {
