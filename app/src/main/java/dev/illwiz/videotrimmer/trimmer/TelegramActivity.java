@@ -1,6 +1,7 @@
 package dev.illwiz.videotrimmer.trimmer;
 
 import android.app.ProgressDialog;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -18,6 +19,8 @@ import org.telegram.messenger.CustomVideoTimelinePlayView;
 
 import java.io.File;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -107,12 +110,36 @@ public class TelegramActivity extends AppCompatActivity {
                 });
     }
 
+    private Timer trimDurCounterTimer;
+
     @OnClick(R.id.videoViewWrapper)
     public void videoViewWrapper() {
         if(videoView.isPlaying()) {
+            trimDurCounterTimer.cancel();
             videoView.pause();
             playBtn.setVisibility(View.VISIBLE);
         } else {
+            trimDurCounterTimer = new Timer();
+            trimDurCounterTimer.scheduleAtFixedRate(new TimerTask() {
+                long currentTime = trimStartTime;
+                @Override
+                public void run() {
+                    currentTime = currentTime+1000;
+                    String trimRangeDurStr = Utils.getMinuteSeconds(currentTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
+                    runOnUiThread(()->{
+                        trimDurRangeTxt.setText(trimRangeDurStr);
+                    });
+                    if(currentTime>=trimEndTime) {
+                        trimDurCounterTimer.cancel();
+                        runOnUiThread(()->{
+                            videoView.pause();
+                            videoView.seekTo((int)trimStartTime);
+                            String trimRangeDurStr2 = Utils.getMinuteSeconds(trimStartTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
+                            trimDurRangeTxt.setText(trimRangeDurStr2);
+                        });
+                    }
+                }
+            },0,1000);
             videoView.start();
             playBtn.setVisibility(View.GONE);
         }
@@ -127,6 +154,27 @@ public class TelegramActivity extends AppCompatActivity {
         }
 
         videoView.setOnPreparedListener(mediaPlayer -> {
+            mediaPlayer.setOnInfoListener(new MediaPlayer.OnInfoListener() {
+                @Override
+                public boolean onInfo(MediaPlayer mediaPlayer, int i, int i1) {
+                    return false;
+                }
+            });
+            mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
+                @Override
+                public void onBufferingUpdate(MediaPlayer mediaPlayer, int i) {
+                    int currentPos = mediaPlayer.getCurrentPosition();
+                    Timber.d("onBufferingUpdate "+i+" - "+currentPos);
+                    String trimRangeDurStr = Utils.getMinuteSeconds(currentPos) + "-" + Utils.getMinuteSeconds(trimEndTime);
+                    trimDurRangeTxt.setText(trimRangeDurStr);
+                }
+            });
+            mediaPlayer.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
+                @Override
+                public void onSeekComplete(MediaPlayer mediaPlayer) {
+                    Timber.d("onSeekComplete");
+                }
+            });
             videoDuration = mediaPlayer.getDuration();
             initVideoTimelineView();
             playBtn.setVisibility(View.VISIBLE);
@@ -165,7 +213,7 @@ public class TelegramActivity extends AppCompatActivity {
                 if (videoView.isPlaying()) {
                     videoView.pause();
                 }
-                videoView.seekTo((int) (videoDuration * progress));
+                //videoView.seekTo((int) (videoDuration * progress));
                 timelineView.setProgress(0);
                 updateVideoInfo();
             }
@@ -176,7 +224,7 @@ public class TelegramActivity extends AppCompatActivity {
                 if (videoView.isPlaying()) {
                     videoView.pause();
                 }
-                videoView.seekTo((int) (videoDuration * progress));
+                //videoView.seekTo((int) (videoDuration * progress));
                 timelineView.setProgress(0);
                 updateVideoInfo();
             }
@@ -195,6 +243,7 @@ public class TelegramActivity extends AppCompatActivity {
             @Override
             public void didStopDragging() {
                 Timber.d("didStopDragging");
+                videoView.seekTo((int) (videoDuration * timelineView.getLeftProgress()));
             }
         });
         timelineView.setVideoPath(videoUri);

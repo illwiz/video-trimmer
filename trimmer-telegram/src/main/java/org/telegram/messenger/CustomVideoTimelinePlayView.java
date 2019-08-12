@@ -147,7 +147,7 @@ public class CustomVideoTimelinePlayView extends View {
 
         int width = getMeasuredWidth() - Utils.dp(getContext(),32);
         int startX = (int) (width * progressLeft) + Utils.dp(getContext(),16);
-        int playX = (int) (width * (progressLeft + (progressRight - progressLeft) * playProgress)) + Utils.dp(getContext(),16);
+        //int playX = (int) (width * (progressLeft + (progressRight - progressLeft) * playProgress)) + Utils.dp(getContext(),16);
         int endX = (int) (width * progressRight) + Utils.dp(getContext(),16);
 
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -157,7 +157,7 @@ public class CustomVideoTimelinePlayView extends View {
             }
             int additionWidth = Utils.dp(getContext(),12);
             int additionWidthPlay = Utils.dp(getContext(),8);
-            if (playX - additionWidthPlay <= x && x <= playX + additionWidthPlay && y >= 0 && y <= getMeasuredHeight()) {
+            /*if (playX - additionWidthPlay <= x && x <= playX + additionWidthPlay && y >= 0 && y <= getMeasuredHeight()) {
                 if (delegate != null) {
                     delegate.didStartDragging();
                 }
@@ -165,7 +165,7 @@ public class CustomVideoTimelinePlayView extends View {
                 pressDx = (int) (x - playX);
                 invalidate();
                 return true;
-            } else if (startX - additionWidth <= x && x <= startX + additionWidth && y >= 0 && y <= getMeasuredHeight()) {
+            } else*/ if (startX - additionWidth <= x && x <= startX + additionWidth && y >= 0 && y <= getMeasuredHeight()) {
                 if (delegate != null) {
                     delegate.didStartDragging();
                 }
@@ -195,15 +195,15 @@ public class CustomVideoTimelinePlayView extends View {
                 }
                 pressedRight = false;
                 return true;
-            } else if (pressedPlay) {
+            } /*else if (pressedPlay) {
                 if (delegate != null) {
                     delegate.didStopDragging();
                 }
                 pressedPlay = false;
                 return true;
-            }
+            }*/
         } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            if (pressedPlay) {
+            /*if (pressedPlay) {
                 playX = (int) (x - pressDx);
                 playProgress = (float) (playX - Utils.dp(getContext(),16)) / (float) width;
                 if (playProgress < progressLeft) {
@@ -217,7 +217,7 @@ public class CustomVideoTimelinePlayView extends View {
                 }
                 invalidate();
                 return true;
-            } else if (pressedLeft) {
+            } else*/ if (pressedLeft) {
                 startX = (int) (x - pressDx);
                 if (startX < Utils.dp(getContext(),16)) {
                     startX = Utils.dp(getContext(),16);
@@ -432,6 +432,9 @@ public class CustomVideoTimelinePlayView extends View {
                 Bitmap bitmap = frames.get(a);
                 if (bitmap != null) {
                     int x = Utils.dp(getContext(),16) + offset * (isRoundFrames ? frameWidth / 2 : frameWidth);
+                    if(a>0) { // Add frame space 2dp
+                        x = x+(Utils.dp(getContext(),2)*offset);
+                    }
                     int y = Utils.dp(getContext(),2 + 4);
                     if (isRoundFrames) {
                         rect2.set(x, y, x + Utils.dp(getContext(),28), y + Utils.dp(getContext(),28));
@@ -450,29 +453,41 @@ public class CustomVideoTimelinePlayView extends View {
         canvas.drawRect(Utils.dp(getContext(),16), top, startX, Utils.dp(getContext(),46), paint2);
         canvas.drawRect(endX + Utils.dp(getContext(),4), top, Utils.dp(getContext(),16) + width + Utils.dp(getContext(),4), Utils.dp(getContext(),46), paint2);
 
+        // Draw top and bottom line
         canvas.drawRect(startX, Utils.dp(getContext(),4), startX + Utils.dp(getContext(),2), end, paint);
         canvas.drawRect(endX + Utils.dp(getContext(),2), Utils.dp(getContext(),4), endX + Utils.dp(getContext(),4), end, paint);
         canvas.drawRect(startX + Utils.dp(getContext(),2), Utils.dp(getContext(),4), endX + Utils.dp(getContext(),4), top, paint);
         canvas.drawRect(startX + Utils.dp(getContext(),2), end - Utils.dp(getContext(),2), endX + Utils.dp(getContext(),4), end, paint);
         canvas.restore();
 
-        rect3.set(startX - Utils.dp(getContext(),8), Utils.dp(getContext(),4), startX + Utils.dp(getContext(),2), end);
+        // Draw left line and the drawable
+        /*rect3.set(startX - Utils.dp(getContext(),8), Utils.dp(getContext(),4), startX + Utils.dp(getContext(),2), end);
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),2), Utils.dp(getContext(),2), paint);
         drawableLeft.setBounds(startX - Utils.dp(getContext(),8), Utils.dp(getContext(),4) + (Utils.dp(getContext(),44) - Utils.dp(getContext(),18)) / 2, startX + Utils.dp(getContext(),2), (Utils.dp(getContext(),44) - Utils.dp(getContext(),18)) / 2 + Utils.dp(getContext(),18 + 4));
-        drawableLeft.draw(canvas);
+        drawableLeft.draw(canvas);*/
+        rect3.set(startX, Utils.dp(getContext(),4), startX + Utils.dp(getContext(),1), end);
+        canvas.drawRoundRect(rect3, Utils.dp(getContext(),4), Utils.dp(getContext(),4), paint);
+        rect3.set(startX - Utils.dp(getContext(),2f), Utils.dp(getContext(),16), startX + Utils.dp(getContext(),4), Utils.dp(getContext(),36.2f));
+        canvas.drawRoundRect(rect3, Utils.dp(getContext(),4), Utils.dp(getContext(),4), paint);
 
-        rect3.set(endX + Utils.dp(getContext(),2), Utils.dp(getContext(),4), endX + Utils.dp(getContext(),12), end);
+        // Draw right line and the drawable
+        /*rect3.set(endX + Utils.dp(getContext(),2), Utils.dp(getContext(),4), endX + Utils.dp(getContext(),12), end);
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),2), Utils.dp(getContext(),2), paint);
         drawableRight.setBounds(endX + Utils.dp(getContext(),2), Utils.dp(getContext(),4) + (Utils.dp(getContext(),44) - Utils.dp(getContext(),18)) / 2, endX + Utils.dp(getContext(),12), (Utils.dp(getContext(),44) - Utils.dp(getContext(),18)) / 2 + Utils.dp(getContext(),18 + 4));
-        drawableRight.draw(canvas);
+        drawableRight.draw(canvas);*/
+        rect3.set(endX + Utils.dp(getContext(),2), Utils.dp(getContext(),4), endX + Utils.dp(getContext(),3), end);
+        canvas.drawRoundRect(rect3, Utils.dp(getContext(),4), Utils.dp(getContext(),4), paint);
+        rect3.set(endX - Utils.dp(getContext(),0), Utils.dp(getContext(),16), endX + Utils.dp(getContext(),6), Utils.dp(getContext(),36.2f));
+        canvas.drawRoundRect(rect3, Utils.dp(getContext(),4), Utils.dp(getContext(),4), paint);
 
-        float cx = Utils.dp(getContext(),18) + width * (progressLeft + (progressRight - progressLeft) * playProgress);
+        // Draw seek bar to seek frames
+        /*float cx = Utils.dp(getContext(),18) + width * (progressLeft + (progressRight - progressLeft) * playProgress);
         rect3.set(cx - Utils.dp(getContext(),1.5f), Utils.dp(getContext(),2), cx + Utils.dp(getContext(),1.5f), Utils.dp(getContext(),50));
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),1), Utils.dp(getContext(),1), paint2);
         canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3.5f), paint2);
 
         rect3.set(cx - Utils.dp(getContext(),1), Utils.dp(getContext(),2), cx + Utils.dp(getContext(),1), Utils.dp(getContext(),50));
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),1), Utils.dp(getContext(),1), paint);
-        canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3), paint);
+        canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3), paint);*/
     }
 }
