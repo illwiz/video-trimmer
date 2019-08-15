@@ -3,4 +3,10 @@ apply from: "$rootDir/common-android-library.gradle"
 dependencies {
 
     implementation "androidx.appcompat:appcompat:$rootProject.androidAppCompat"
+
+    // Video
+    implementation "com.googlecode.mp4parser:isoparser:$rootProject.mp4Parser"
+
+    // Timber
+    implementation "com.jakewharton.timber:timber:$rootProject.timber"
 }

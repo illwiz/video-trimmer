@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -16,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.telegram.messenger.CustomVideoTimelinePlayView;
+import org.telegram.messenger.VideoTrimUtils;
 
 import java.io.File;
 import java.util.Locale;
@@ -81,7 +83,7 @@ public class TelegramActivity extends AppCompatActivity {
     @OnClick(R.id.trimBtn)
     public void trimBtn() {
         //long now = System.currentTimeMillis();
-        File outDir = videoFile.getParentFile();
+        File outDir = Environment.getExternalStorageDirectory();
         /*File outDir = new File(videoFile.getParent(),"trim-"+now+".mp4");
         try {
             boolean createFileSuccess = outDir.createNewFile();
@@ -92,7 +94,9 @@ public class TelegramActivity extends AppCompatActivity {
             return;
         }*/
         Completable trimCompletable = Completable.fromAction(()->{
-            TrimUtils.trim(videoFile,outDir,trimStartTime,trimEndTime);
+            //TrimUtils.trim(videoFile,outDir,trimStartTime,trimEndTime);
+            File result = TrimUtils.trimVideo(videoFile,outDir,(int)trimStartTime,(int)trimEndTime);
+            Timber.d("Trim result "+result.getAbsolutePath());
         });
         trimTask = trimCompletable
                 .subscribeOn(Schedulers.io())

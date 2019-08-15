@@ -10,6 +10,8 @@ import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import com.googlecode.mp4parser.authoring.tracks.AppendTrack;
 import com.googlecode.mp4parser.authoring.tracks.CroppedTrack;
 
+import org.telegram.messenger.VideoTrimUtils;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,12 +25,24 @@ import java.util.Locale;
 
 public class TrimUtils {
 
+    public static File trimVideo(File src, File dst, int startTime, int endTime) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String fileName = "TRIMMED_" + timeStamp + ".mp4";
+        //final String filePath = dst + fileName;
+        File outputFile = new File(dst,fileName);
+        if(!outputFile.exists()) {
+            outputFile.createNewFile();
+        }
+        boolean result = VideoTrimUtils.convertVideo(src,outputFile,startTime,endTime);
+        return outputFile;
+    }
+
     /**
      * https://github.com/deepandroid/video-trimmer/blob/master/videotrimmer/src/main/java/com/deep/videotrimmer/utils/TrimVideoUtils.java
      * https://stackoverflow.com/a/36166688/10770681
      * https://github.com/sannies/mp4parser/blob/master/examples/src/main/java/com/googlecode/mp4parser/ShortenExample.java
      */
-    public static void trim(File src, File dst, double startTime, double endTime) throws IOException {
+    public static File trim(File src, File dst, double startTime, double endTime) throws IOException {
         /*FileDataSourceImpl file = new FileDataSourceImpl(src);
         Movie movie = MovieCreator.build(file);*/
         Movie movie = MovieCreator.build(new FileDataSourceViaHeapImpl(src.getAbsolutePath()));
@@ -105,6 +119,8 @@ public class TrimUtils {
         System.err.println("Building IsoFile took : " + (start2 - start1) + "ms");
         System.err.println("Writing IsoFile took  : " + (start3 - start2) + "ms");
         System.err.println("Writing IsoFile speed : " + (new File(String.format("output-%f-%f.mp4", startTime1, endTime1)).length() / (start3 - start2) / 1000) + "MB/s");
+
+        return outputFile;
     }
 
 
