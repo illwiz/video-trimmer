@@ -2,7 +2,6 @@ package dev.illwiz.videotrimmer.utils;
 
 import com.coremedia.iso.boxes.Container;
 import com.googlecode.mp4parser.FileDataSourceImpl;
-import com.googlecode.mp4parser.FileDataSourceViaHeapImpl;
 import com.googlecode.mp4parser.authoring.Movie;
 import com.googlecode.mp4parser.authoring.Track;
 import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
@@ -43,9 +42,9 @@ public class TrimUtils {
      * https://github.com/sannies/mp4parser/blob/master/examples/src/main/java/com/googlecode/mp4parser/ShortenExample.java
      */
     public static File trim(File src, File dst, double startTime, double endTime) throws IOException {
-        /*FileDataSourceImpl file = new FileDataSourceImpl(src);
-        Movie movie = MovieCreator.build(file);*/
-        Movie movie = MovieCreator.build(new FileDataSourceViaHeapImpl(src.getAbsolutePath()));
+        FileDataSourceImpl file = new FileDataSourceImpl(src);
+        Movie movie = MovieCreator.build(file);
+        //Movie movie = MovieCreator.build(new FileDataSourceViaHeapImpl(src.getAbsolutePath()));
 
         List<Track> tracks = movie.getTracks();
         movie.setTracks(new LinkedList<Track>());

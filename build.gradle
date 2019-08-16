@@ -56,7 +56,7 @@ ext {
     fresco = "1.13.0"
 
     // Video
-    mp4Parser = "1.1.22"
+    mp4Parser = "1.0.6"
 
     // Google
     gson = "2.8.5"

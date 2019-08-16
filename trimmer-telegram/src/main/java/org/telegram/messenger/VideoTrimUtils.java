@@ -238,13 +238,14 @@ public class VideoTrimUtils {
         int rotationValue = 0;
         int framerate = mf.getInteger(MediaFormat.KEY_FRAME_RATE);
         String bitrateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
-        //int bitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
-        int bitrate = 999935;
+        int bitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
+        //int bitrate = 999935;
         int rotateRender = 0;
         File cacheFile = dst;
         if (videoPath == null) {
             videoPath = "";
         }
+        mmr.release();
 
         if (Build.VERSION.SDK_INT < 18 && resultHeight > resultWidth && resultWidth != originalWidth && resultHeight != originalHeight) {
             int temp = resultHeight;
