@@ -481,13 +481,13 @@ public class CustomVideoTimelinePlayView extends View {
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),4), Utils.dp(getContext(),4), paint);
 
         // Draw seek bar to seek frames
-        /*float cx = Utils.dp(getContext(),18) + width * (progressLeft + (progressRight - progressLeft) * playProgress);
+        float cx = Utils.dp(getContext(),18) + width * (progressLeft + (progressRight - progressLeft) * playProgress);
         rect3.set(cx - Utils.dp(getContext(),1.5f), Utils.dp(getContext(),2), cx + Utils.dp(getContext(),1.5f), Utils.dp(getContext(),50));
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),1), Utils.dp(getContext(),1), paint2);
         canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3.5f), paint2);
 
         rect3.set(cx - Utils.dp(getContext(),1), Utils.dp(getContext(),2), cx + Utils.dp(getContext(),1), Utils.dp(getContext(),50));
         canvas.drawRoundRect(rect3, Utils.dp(getContext(),1), Utils.dp(getContext(),1), paint);
-        canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3), paint);*/
+        canvas.drawCircle(cx, Utils.dp(getContext(),52), Utils.dp(getContext(),3), paint);
     }
 }

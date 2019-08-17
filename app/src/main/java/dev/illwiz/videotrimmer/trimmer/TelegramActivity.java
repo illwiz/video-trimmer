@@ -68,6 +68,7 @@ public class TelegramActivity extends AppCompatActivity {
     private long originalSize,estimatedSize;
     private Disposable trimTask,convertTask;
     private ProgressDialog progressDialog;
+    private Runnable updateProgressRunnable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -84,6 +85,9 @@ public class TelegramActivity extends AppCompatActivity {
         }
         if(convertTask!=null) {
             convertTask.dispose();
+        }
+        if(updateProgressRunnable!=null) {
+
         }
         super.onDestroy();
     }
@@ -133,10 +137,10 @@ public class TelegramActivity extends AppCompatActivity {
         } else {
             trimDurCounterTimer = new Timer();
             trimDurCounterTimer.scheduleAtFixedRate(new TimerTask() {
-                long currentTime = trimStartTime;
+                long currentTime;
                 @Override
                 public void run() {
-                    currentTime = currentTime+1000;
+                    currentTime = videoView.getCurrentPosition();
                     String trimRangeDurStr = Utils.getMinuteSeconds(currentTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
                     runOnUiThread(()->{
                         trimDurRangeTxt.setText(trimRangeDurStr);
@@ -151,8 +155,9 @@ public class TelegramActivity extends AppCompatActivity {
                         });
                     }
                 }
-            },0,1000);
+            },0,100);
             videoView.start();
+            timelineView.post(updateProgressRunnable);
             playBtn.setVisibility(View.GONE);
         }
     }
@@ -162,6 +167,13 @@ public class TelegramActivity extends AppCompatActivity {
         String path = Utils.getPath(this,videoUri);
         videoFile = new File(path);
 
+        updateProgressRunnable = ()->{
+            if(videoView==null||!videoView.isPlaying()) {
+                timelineView.removeCallbacks(updateProgressRunnable);
+            }
+            updatePlayProgress();
+            timelineView.postDelayed(updateProgressRunnable,17);
+        };
         convertInputVideo(videoFile,()->{
             originalSize = videoFile.length();
             videoView.setOnPreparedListener(mediaPlayer -> {
@@ -173,6 +185,24 @@ public class TelegramActivity extends AppCompatActivity {
             //videoView.setMediaController(new MediaController(this));
             videoView.setVideoURI(videoUri);
         });
+    }
+
+    private void updatePlayProgress() {
+        float progress = 0;
+        if (videoView != null) {
+            progress = videoView.getCurrentPosition() / (float) videoView.getDuration();
+            if (timelineView.getVisibility() == View.VISIBLE) {
+                progress -= timelineView.getLeftProgress();
+                if (progress < 0) {
+                    progress = 0;
+                }
+                progress /= (timelineView.getRightProgress() - timelineView.getLeftProgress());
+                if (progress > 1) {
+                    progress = 1;
+                }
+            }
+        }
+        timelineView.setProgress(progress);
     }
 
     private void updateVideoInfo() {
