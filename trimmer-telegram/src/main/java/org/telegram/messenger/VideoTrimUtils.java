@@ -85,7 +85,7 @@ public class VideoTrimUtils {
         return lastColorFormat;
     }
 
-    private static int findTrack(MediaExtractor extractor, boolean audio) {
+    public static int findTrack(MediaExtractor extractor, boolean audio) {
         int numTracks = extractor.getTrackCount();
         for (int i = 0; i < numTracks; i++) {
             MediaFormat format = extractor.getTrackFormat(i);
@@ -223,7 +223,8 @@ public class VideoTrimUtils {
         VideoEditInfo videoEditInfo = new VideoEditInfo(src,dst,trimStartMs*1000,trimEndMs*1000);
         MediaExtractor mex = new MediaExtractor();
         mex.setDataSource(src.getAbsolutePath());
-        MediaFormat mf = mex.getTrackFormat(0);
+        int videoIndex = findTrack(mex,false);
+        MediaFormat mf = mex.getTrackFormat(videoIndex);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         mmr.setDataSource(src.getAbsolutePath());
         videoEditInfo.setResultWidth(mf.getInteger(MediaFormat.KEY_WIDTH));
@@ -243,7 +244,8 @@ public class VideoTrimUtils {
         VideoEditInfo videoEditInfo = new VideoEditInfo(src,dst,resultWidth,resultHeight,frameRate,bitrate);
         MediaExtractor mex = new MediaExtractor();
         mex.setDataSource(src.getAbsolutePath());
-        MediaFormat mf = mex.getTrackFormat(0);
+        int videoIndex = findTrack(mex, false);
+        MediaFormat mf = mex.getTrackFormat(videoIndex);
         videoEditInfo.setTrimStartUs(0);
         videoEditInfo.setTrimEndUs((int)mf.getLong(MediaFormat.KEY_DURATION));
         mex.release();
@@ -255,7 +257,10 @@ public class VideoTrimUtils {
     private static boolean convertVideo(VideoEditInfo videoEditInfo) throws IOException {
         MediaExtractor mex = new MediaExtractor();
         mex.setDataSource(videoEditInfo.getSrc().getAbsolutePath());
-        MediaFormat mf = mex.getTrackFormat(0);
+        int vidIndex = findTrack(mex, false);
+        MediaFormat mf = mex.getTrackFormat(vidIndex);
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+        mmr.setDataSource(videoEditInfo.getSrc().getAbsolutePath());
 
         String videoPath = videoEditInfo.getSrc().getAbsolutePath();
         long startTime = videoEditInfo.getTrimStartUs();
@@ -264,7 +269,8 @@ public class VideoTrimUtils {
         int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
         int resultWidth = videoEditInfo.getResultWidth();
         int resultHeight = videoEditInfo.getResultHeight();
-        int rotationValue = mf.getInteger(MediaFormat.KEY_ROTATION);
+        String rotationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+        int rotationValue = rotationStr==null ? 0 : Integer.parseInt(rotationStr);
         int framerate = videoEditInfo.getFrameRate();
         int bitrate = videoEditInfo.getBitrate();
         int rotateRender = 0;
@@ -272,6 +278,8 @@ public class VideoTrimUtils {
         if (videoPath == null) {
             videoPath = "";
         }
+        mex.release();
+        mmr.release();
 
         if (Build.VERSION.SDK_INT < 18 && resultHeight > resultWidth && resultWidth != originalWidth && resultHeight != originalHeight) {
             int temp = resultHeight;

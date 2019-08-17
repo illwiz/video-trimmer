@@ -1,5 +1,9 @@
 package dev.illwiz.videotrimmer.utils;
 
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
+
 import com.coremedia.iso.boxes.Container;
 import com.googlecode.mp4parser.FileDataSourceImpl;
 import com.googlecode.mp4parser.authoring.Movie;
@@ -9,6 +13,7 @@ import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import com.googlecode.mp4parser.authoring.tracks.AppendTrack;
 import com.googlecode.mp4parser.authoring.tracks.CroppedTrack;
 
+import org.telegram.messenger.VideoEditInfo;
 import org.telegram.messenger.VideoTrimUtils;
 
 import java.io.File;
@@ -21,6 +26,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+
+import timber.log.Timber;
 
 public class TrimUtils {
 
@@ -35,13 +42,92 @@ public class TrimUtils {
         return result;
     }
 
-    public static File convertVideo(File src,File dst,int resultWidth,int resultHeight,int frameRate,int bitrate) throws IOException {
+    public static File convertVideo(File src,File dst) throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
         String fileName = "CONVERT_" + timeStamp + ".mp4";
         //final String filePath = dst + fileName;
         File outputFile = new File(dst,fileName);
         if(!outputFile.exists()) {
             outputFile.createNewFile();
+        }
+        MediaExtractor mex = new MediaExtractor();
+        try {
+            mex.setDataSource(src.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int videoIndex = VideoTrimUtils.findTrack(mex,false);
+        MediaFormat mf = mex.getTrackFormat(videoIndex);
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+        mmr.setDataSource(src.getAbsolutePath());
+        int originalWidth = mf.getInteger(MediaFormat.KEY_WIDTH);
+        int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
+        int resultWidth = 0;
+        int resultHeight = 0;
+        String bitrateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
+        int originalBitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
+        int bitrate = originalBitrate;
+        int originalFrameRate = mf.getInteger(MediaFormat.KEY_FRAME_RATE);
+        int frameRate = originalFrameRate > 15 ? 15 : originalFrameRate;
+        long videoDuration = mf.getLong(MediaFormat.KEY_DURATION);
+        mmr.release();
+        mex.release();
+        if (bitrate > 900000) {
+            bitrate = 900000;
+        }
+        int selectedCompression = VideoEditInfo.COMPRESS_360;
+        int compressionsCount;
+        if (originalWidth > 1280 || originalHeight > 1280) {
+            compressionsCount = 5;
+        } else if (originalWidth > 848 || originalHeight > 848) {
+            compressionsCount = 4;
+        } else if (originalWidth > 640 || originalHeight > 640) {
+            compressionsCount = 3;
+        } else if (originalWidth > 480 || originalHeight > 480) {
+            compressionsCount = 2;
+        } else {
+            compressionsCount = 1;
+        }
+
+        if (selectedCompression >= compressionsCount) {
+            selectedCompression = compressionsCount - 1;
+        }
+        if (selectedCompression != compressionsCount - 1) {
+            float maxSize;
+            int targetBitrate;
+            switch (selectedCompression) {
+                case 0:
+                    maxSize = 432.0f;
+                    targetBitrate = 400000;
+                    break;
+                case 1:
+                    maxSize = 640.0f;
+                    targetBitrate = 900000;
+                    break;
+                case 2:
+                    maxSize = 848.0f;
+                    targetBitrate = 1100000;
+                    break;
+                case 3:
+                default:
+                    targetBitrate = 2500000;
+                    maxSize = 1280.0f;
+                    break;
+            }
+            float scale = originalWidth > originalHeight ? maxSize / originalWidth : maxSize / originalHeight;
+            resultWidth = Math.round(originalWidth * scale / 2) * 2;
+            resultHeight = Math.round(originalHeight * scale / 2) * 2;
+            if (bitrate != 0) {
+                bitrate = Math.min(targetBitrate, (int) (originalBitrate / scale));
+                long videoFramesSize = (long) (bitrate / 8 * videoDuration / 1000);
+                Timber.d("Frame siwze "+videoFramesSize);
+            }
+        }
+
+        if (selectedCompression == compressionsCount - 1) {
+            resultWidth = originalWidth;
+            resultHeight = originalHeight;
+            bitrate = originalBitrate;
         }
         File result = VideoTrimUtils.convertVideo(src,outputFile,resultWidth,resultHeight,frameRate,bitrate);
         return result;

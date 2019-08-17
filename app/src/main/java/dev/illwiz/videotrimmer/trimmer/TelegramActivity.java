@@ -1,10 +1,6 @@
 package dev.illwiz.videotrimmer.trimmer;
 
 import android.app.ProgressDialog;
-import android.media.MediaExtractor;
-import android.media.MediaFormat;
-import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -15,16 +11,14 @@ import android.widget.TextView;
 import android.widget.VideoView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.snackbar.Snackbar;
 
 import org.telegram.messenger.CustomVideoTimelinePlayView;
-import org.telegram.messenger.VideoEditInfo;
-import org.telegram.messenger.VideoTrimUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -174,17 +168,21 @@ public class TelegramActivity extends AppCompatActivity {
             updatePlayProgress();
             timelineView.postDelayed(updateProgressRunnable,17);
         };
-        convertInputVideo(videoFile,()->{
-            originalSize = videoFile.length();
-            videoView.setOnPreparedListener(mediaPlayer -> {
-                videoDuration = mediaPlayer.getDuration();
-                initVideoTimelineView();
-                playBtn.setVisibility(View.VISIBLE);
-                updateVideoInfo();
-            });
-            //videoView.setMediaController(new MediaController(this));
-            videoView.setVideoURI(videoUri);
-        });
+
+        new AlertDialog.Builder(this)
+                .setMessage("Convert video ?")
+                .setPositiveButton("Yes",(dialogInterface, i) -> {
+                    dialogInterface.dismiss();
+                    convertInputVideo(videoFile,()->{
+                        initVideo();
+                    });
+                })
+                .setNegativeButton("No",(dialogInterface, i) -> {
+                    dialogInterface.dismiss();
+                    initVideo();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void updatePlayProgress() {
@@ -214,6 +212,18 @@ public class TelegramActivity extends AppCompatActivity {
         trimDurAndSizeTxt.setText(videoTimeSize);
         String trimRangeDurStr = Utils.getMinuteSeconds(trimStartTime) + "-" + Utils.getMinuteSeconds(trimEndTime);
         trimDurRangeTxt.setText(trimRangeDurStr);
+    }
+
+    private void initVideo() {
+        originalSize = videoFile.length();
+        videoView.setOnPreparedListener(mediaPlayer -> {
+            videoDuration = mediaPlayer.getDuration();
+            initVideoTimelineView();
+            playBtn.setVisibility(View.VISIBLE);
+            updateVideoInfo();
+        });
+        //videoView.setMediaController(new MediaController(this));
+        videoView.setVideoURI(videoUri);
     }
 
     private void initVideoTimelineView() {
@@ -273,84 +283,7 @@ public class TelegramActivity extends AppCompatActivity {
     private void convertInputVideo(File videoSrc,Runnable onComplete) {
         Completable convertCompletable = Completable.fromAction(()->{
             File outDir = Environment.getExternalStorageDirectory();
-            MediaExtractor mex = new MediaExtractor();
-            try {
-                mex.setDataSource(videoSrc.getAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            MediaFormat mf = mex.getTrackFormat(0);
-            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-            mmr.setDataSource(videoSrc.getAbsolutePath());
-            int originalWidth = mf.getInteger(MediaFormat.KEY_WIDTH);
-            int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
-            int resultWidth = 0;
-            int resultHeight = 0;
-            String bitrateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
-            int originalBitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
-            int bitrate = originalBitrate;
-            int originalFrameRate = mf.getInteger(MediaFormat.KEY_FRAME_RATE);
-            int frameRate = originalFrameRate > 15 ? 15 : originalFrameRate;
-            mmr.release();
-            mex.release();
-            if (bitrate > 900000) {
-                bitrate = 900000;
-            }
-            int selectedCompression = VideoEditInfo.COMPRESS_360;
-            int compressionsCount;
-            if (originalWidth > 1280 || originalHeight > 1280) {
-                compressionsCount = 5;
-            } else if (originalWidth > 848 || originalHeight > 848) {
-                compressionsCount = 4;
-            } else if (originalWidth > 640 || originalHeight > 640) {
-                compressionsCount = 3;
-            } else if (originalWidth > 480 || originalHeight > 480) {
-                compressionsCount = 2;
-            } else {
-                compressionsCount = 1;
-            }
-
-            if (selectedCompression >= compressionsCount) {
-                selectedCompression = compressionsCount - 1;
-            }
-            if (selectedCompression != compressionsCount - 1) {
-                float maxSize;
-                int targetBitrate;
-                switch (selectedCompression) {
-                    case 0:
-                        maxSize = 432.0f;
-                        targetBitrate = 400000;
-                        break;
-                    case 1:
-                        maxSize = 640.0f;
-                        targetBitrate = 900000;
-                        break;
-                    case 2:
-                        maxSize = 848.0f;
-                        targetBitrate = 1100000;
-                        break;
-                    case 3:
-                    default:
-                        targetBitrate = 2500000;
-                        maxSize = 1280.0f;
-                        break;
-                }
-                float scale = originalWidth > originalHeight ? maxSize / originalWidth : maxSize / originalHeight;
-                resultWidth = Math.round(originalWidth * scale / 2) * 2;
-                resultHeight = Math.round(originalHeight * scale / 2) * 2;
-                if (bitrate != 0) {
-                    bitrate = Math.min(targetBitrate, (int) (originalBitrate / scale));
-                    long videoFramesSize = (long) (bitrate / 8 * videoDuration / 1000);
-                    Timber.d("Frame siwze "+videoFramesSize);
-                }
-            }
-
-            if (selectedCompression == compressionsCount - 1) {
-                resultWidth = originalWidth;
-                resultHeight = originalHeight;
-                bitrate = originalBitrate;
-            }
-            File result = TrimUtils.convertVideo(videoSrc,outDir,resultWidth,resultHeight,frameRate,bitrate);
+            File result = TrimUtils.convertVideo(videoSrc,outDir);
             videoFile = result;
             videoUri = Uri.fromFile(result);
             Timber.d("Convert result "+result.getAbsolutePath());
