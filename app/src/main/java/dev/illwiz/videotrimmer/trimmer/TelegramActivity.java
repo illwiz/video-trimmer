@@ -1,6 +1,9 @@
 package dev.illwiz.videotrimmer.trimmer;
 
 import android.app.ProgressDialog;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,9 +20,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.telegram.messenger.CustomVideoTimelinePlayView;
+import org.telegram.messenger.VideoEditInfo;
 import org.telegram.messenger.VideoTrimUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -61,7 +66,7 @@ public class TelegramActivity extends AppCompatActivity {
     private float videoDuration;
     private long estimatedDuration,trimStartTime,trimEndTime;
     private long originalSize,estimatedSize;
-    private Disposable trimTask;
+    private Disposable trimTask,convertTask;
     private ProgressDialog progressDialog;
 
     @Override
@@ -76,6 +81,9 @@ public class TelegramActivity extends AppCompatActivity {
     protected void onDestroy() {
         if(trimTask!=null) {
             trimTask.dispose();
+        }
+        if(convertTask!=null) {
+            convertTask.dispose();
         }
         super.onDestroy();
     }
@@ -102,14 +110,14 @@ public class TelegramActivity extends AppCompatActivity {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe(disposable -> {
-                    showLoading(true);
+                    showLoading(true,"Trim in progress, please wait...");
                 })
                 .subscribe(()->{
-                   showLoading(false);
+                   showLoading(false,null);
                    showMessage("Trim success");
                 },throwable -> {
                     throwable.printStackTrace();
-                    showLoading(false);
+                    showLoading(false,null);
                     showMessage(throwable.getMessage());
                 });
     }
@@ -153,39 +161,18 @@ public class TelegramActivity extends AppCompatActivity {
         videoUri = getIntent().getParcelableExtra(Prop.MAIN_OBJ);
         String path = Utils.getPath(this,videoUri);
         videoFile = new File(path);
-        if(videoFile.exists()) {
-            originalSize = videoFile.length();
-        }
 
-        videoView.setOnPreparedListener(mediaPlayer -> {
-            mediaPlayer.setOnInfoListener(new MediaPlayer.OnInfoListener() {
-                @Override
-                public boolean onInfo(MediaPlayer mediaPlayer, int i, int i1) {
-                    return false;
-                }
+        convertInputVideo(videoFile,()->{
+            originalSize = videoFile.length();
+            videoView.setOnPreparedListener(mediaPlayer -> {
+                videoDuration = mediaPlayer.getDuration();
+                initVideoTimelineView();
+                playBtn.setVisibility(View.VISIBLE);
+                updateVideoInfo();
             });
-            mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
-                @Override
-                public void onBufferingUpdate(MediaPlayer mediaPlayer, int i) {
-                    int currentPos = mediaPlayer.getCurrentPosition();
-                    Timber.d("onBufferingUpdate "+i+" - "+currentPos);
-                    String trimRangeDurStr = Utils.getMinuteSeconds(currentPos) + "-" + Utils.getMinuteSeconds(trimEndTime);
-                    trimDurRangeTxt.setText(trimRangeDurStr);
-                }
-            });
-            mediaPlayer.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
-                @Override
-                public void onSeekComplete(MediaPlayer mediaPlayer) {
-                    Timber.d("onSeekComplete");
-                }
-            });
-            videoDuration = mediaPlayer.getDuration();
-            initVideoTimelineView();
-            playBtn.setVisibility(View.VISIBLE);
-            updateVideoInfo();
+            //videoView.setMediaController(new MediaController(this));
+            videoView.setVideoURI(videoUri);
         });
-        //videoView.setMediaController(new MediaController(this));
-        videoView.setVideoURI(videoUri);
     }
 
     private void updateVideoInfo() {
@@ -253,13 +240,115 @@ public class TelegramActivity extends AppCompatActivity {
         timelineView.setVideoPath(videoUri);
     }
 
+    private void convertInputVideo(File videoSrc,Runnable onComplete) {
+        Completable convertCompletable = Completable.fromAction(()->{
+            File outDir = Environment.getExternalStorageDirectory();
+            MediaExtractor mex = new MediaExtractor();
+            try {
+                mex.setDataSource(videoSrc.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            MediaFormat mf = mex.getTrackFormat(0);
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(videoSrc.getAbsolutePath());
+            int originalWidth = mf.getInteger(MediaFormat.KEY_WIDTH);
+            int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
+            int resultWidth = 0;
+            int resultHeight = 0;
+            String bitrateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
+            int originalBitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
+            int bitrate = originalBitrate;
+            int originalFrameRate = mf.getInteger(MediaFormat.KEY_FRAME_RATE);
+            int frameRate = originalFrameRate > 15 ? 15 : originalFrameRate;
+            mmr.release();
+            mex.release();
+            if (bitrate > 900000) {
+                bitrate = 900000;
+            }
+            int selectedCompression = VideoEditInfo.COMPRESS_360;
+            int compressionsCount;
+            if (originalWidth > 1280 || originalHeight > 1280) {
+                compressionsCount = 5;
+            } else if (originalWidth > 848 || originalHeight > 848) {
+                compressionsCount = 4;
+            } else if (originalWidth > 640 || originalHeight > 640) {
+                compressionsCount = 3;
+            } else if (originalWidth > 480 || originalHeight > 480) {
+                compressionsCount = 2;
+            } else {
+                compressionsCount = 1;
+            }
+
+            if (selectedCompression >= compressionsCount) {
+                selectedCompression = compressionsCount - 1;
+            }
+            if (selectedCompression != compressionsCount - 1) {
+                float maxSize;
+                int targetBitrate;
+                switch (selectedCompression) {
+                    case 0:
+                        maxSize = 432.0f;
+                        targetBitrate = 400000;
+                        break;
+                    case 1:
+                        maxSize = 640.0f;
+                        targetBitrate = 900000;
+                        break;
+                    case 2:
+                        maxSize = 848.0f;
+                        targetBitrate = 1100000;
+                        break;
+                    case 3:
+                    default:
+                        targetBitrate = 2500000;
+                        maxSize = 1280.0f;
+                        break;
+                }
+                float scale = originalWidth > originalHeight ? maxSize / originalWidth : maxSize / originalHeight;
+                resultWidth = Math.round(originalWidth * scale / 2) * 2;
+                resultHeight = Math.round(originalHeight * scale / 2) * 2;
+                if (bitrate != 0) {
+                    bitrate = Math.min(targetBitrate, (int) (originalBitrate / scale));
+                    long videoFramesSize = (long) (bitrate / 8 * videoDuration / 1000);
+                    Timber.d("Frame siwze "+videoFramesSize);
+                }
+            }
+
+            if (selectedCompression == compressionsCount - 1) {
+                resultWidth = originalWidth;
+                resultHeight = originalHeight;
+                bitrate = originalBitrate;
+            }
+            File result = TrimUtils.convertVideo(videoSrc,outDir,resultWidth,resultHeight,frameRate,bitrate);
+            videoFile = result;
+            videoUri = Uri.fromFile(result);
+            Timber.d("Convert result "+result.getAbsolutePath());
+        });
+        convertTask = convertCompletable
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(disposable -> {
+                    showLoading(true,"Convert in progress, please wait...");
+                })
+                .subscribe(()->{
+                    showLoading(false,null);
+                    showMessage("Convert success");
+                    onComplete.run();
+                },throwable -> {
+                    throwable.printStackTrace();
+                    showLoading(false,null);
+                    showMessage(throwable.getMessage());
+                });
+    }
+
     private void showMessage(String message) {
         Snackbar.make(findViewById(android.R.id.content),message,Snackbar.LENGTH_LONG).show();
     }
 
-    private void showLoading(boolean show) {
+    private void showLoading(boolean show,String message) {
         if(show) {
-            progressDialog = ProgressDialog.show(this,"Loading","In progress, please wait...",true,false);
+            progressDialog = ProgressDialog.show(this,"Loading",message,true,false);
         } else if(progressDialog!=null&&progressDialog.isShowing()) {
             progressDialog.dismiss();
         }

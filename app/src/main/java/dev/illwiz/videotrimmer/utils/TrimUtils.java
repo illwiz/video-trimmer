@@ -26,14 +26,25 @@ public class TrimUtils {
 
     public static File trimVideo(File src, File dst, int startTime, int endTime) throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        String fileName = "TRIMMED_" + timeStamp + ".mp4";
+        String fileName = "TRIM_" + timeStamp + ".mp4";
+        File outputFile = new File(dst,fileName);
+        if(!outputFile.exists()) {
+            outputFile.createNewFile();
+        }
+        File result = VideoTrimUtils.trimVideo(src,outputFile,startTime,endTime);
+        return result;
+    }
+
+    public static File convertVideo(File src,File dst,int resultWidth,int resultHeight,int frameRate,int bitrate) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String fileName = "CONVERT_" + timeStamp + ".mp4";
         //final String filePath = dst + fileName;
         File outputFile = new File(dst,fileName);
         if(!outputFile.exists()) {
             outputFile.createNewFile();
         }
-        boolean result = VideoTrimUtils.convertVideo(src,outputFile,startTime,endTime);
-        return outputFile;
+        File result = VideoTrimUtils.convertVideo(src,outputFile,resultWidth,resultHeight,frameRate,bitrate);
+        return result;
     }
 
     /**

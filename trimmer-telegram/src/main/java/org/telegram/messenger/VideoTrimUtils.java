@@ -1,8 +1,6 @@
 package org.telegram.messenger;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.SharedPreferences;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
@@ -221,31 +219,59 @@ public class VideoTrimUtils {
         return -1;
     }
 
-    public static boolean convertVideo(File src,File dst,int startMs,int endMs) throws IOException {
+    public static File trimVideo(File src,File dst,int trimStartMs,int trimEndMs) throws IOException {
+        VideoEditInfo videoEditInfo = new VideoEditInfo(src,dst,trimStartMs*1000,trimEndMs*1000);
         MediaExtractor mex = new MediaExtractor();
         mex.setDataSource(src.getAbsolutePath());
         MediaFormat mf = mex.getTrackFormat(0);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         mmr.setDataSource(src.getAbsolutePath());
-
-        String videoPath = src.getAbsolutePath();
-        long startTime = startMs*1000;
-        long endTime = endMs*1000;
-        int originalWidth = mf.getInteger(MediaFormat.KEY_WIDTH);
-        int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
-        int resultWidth = originalWidth;
-        int resultHeight = originalHeight;
-        int rotationValue = 0;
-        int framerate = mf.getInteger(MediaFormat.KEY_FRAME_RATE);
+        videoEditInfo.setResultWidth(mf.getInteger(MediaFormat.KEY_WIDTH));
+        videoEditInfo.setResultHeight(mf.getInteger(MediaFormat.KEY_HEIGHT));
         String bitrateStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
         int bitrate = bitrateStr==null ? -1 : Integer.parseInt(bitrateStr);
-        //int bitrate = 999935;
+        videoEditInfo.setFrameRate(mf.getInteger(MediaFormat.KEY_FRAME_RATE));
+        videoEditInfo.setBitrate(bitrate);
+        mmr.release();
+        mex.release();
+
+        boolean result = convertVideo(videoEditInfo);
+        return videoEditInfo.getDst();
+    }
+
+    public static File convertVideo(File src,File dst,int resultWidth,int resultHeight,int frameRate,int bitrate) throws IOException {
+        VideoEditInfo videoEditInfo = new VideoEditInfo(src,dst,resultWidth,resultHeight,frameRate,bitrate);
+        MediaExtractor mex = new MediaExtractor();
+        mex.setDataSource(src.getAbsolutePath());
+        MediaFormat mf = mex.getTrackFormat(0);
+        videoEditInfo.setTrimStartUs(0);
+        videoEditInfo.setTrimEndUs((int)mf.getLong(MediaFormat.KEY_DURATION));
+        mex.release();
+
+        boolean result = convertVideo(videoEditInfo);
+        return videoEditInfo.getDst();
+    }
+
+    private static boolean convertVideo(VideoEditInfo videoEditInfo) throws IOException {
+        MediaExtractor mex = new MediaExtractor();
+        mex.setDataSource(videoEditInfo.getSrc().getAbsolutePath());
+        MediaFormat mf = mex.getTrackFormat(0);
+
+        String videoPath = videoEditInfo.getSrc().getAbsolutePath();
+        long startTime = videoEditInfo.getTrimStartUs();
+        long endTime = videoEditInfo.getTrimEndUs();
+        int originalWidth = mf.getInteger(MediaFormat.KEY_WIDTH);
+        int originalHeight = mf.getInteger(MediaFormat.KEY_HEIGHT);
+        int resultWidth = videoEditInfo.getResultWidth();
+        int resultHeight = videoEditInfo.getResultHeight();
+        int rotationValue = mf.getInteger(MediaFormat.KEY_ROTATION);
+        int framerate = videoEditInfo.getFrameRate();
+        int bitrate = videoEditInfo.getBitrate();
         int rotateRender = 0;
-        File cacheFile = dst;
+        File cacheFile = videoEditInfo.getDst();
         if (videoPath == null) {
             videoPath = "";
         }
-        mmr.release();
 
         if (Build.VERSION.SDK_INT < 18 && resultHeight > resultWidth && resultWidth != originalWidth && resultHeight != originalHeight) {
             int temp = resultHeight;

@@ -93,10 +93,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initialize() {
-        videoFile = Uri.fromFile(new File("/storage/emulated/0/WhatsApp/Media/WhatsApp Video/VID-20190712-WA0000.mp4"));
+        /*videoFile = Uri.fromFile(new File("/storage/emulated/0/WhatsApp/Media/WhatsApp Video/VID-20190712-WA0000.mp4"));
         Intent intent = new Intent(this,TelegramActivity.class);
         intent.putExtra(Prop.MAIN_OBJ,videoFile);
-        startActivityForResult(intent,REQ_TRIM_VIDEO);
+        startActivityForResult(intent,REQ_TRIM_VIDEO);*/
     }
 
     private void selectVideo() {
